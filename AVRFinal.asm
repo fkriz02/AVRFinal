@@ -24,6 +24,7 @@ des_sek: .BYTE 1
 
 .org 0x100
 start:
+    ldi r24, 0 ; flag mezicasu
 	; Inicializace zasobniku
 	ldi r16, 0xFF
 	out SPL, r16
@@ -88,10 +89,17 @@ joystick_control:
 	ret 	; return to main loop
 
 neq: 
-	; je zmacknuty dolu? = zakaz globalni preruseni 
+	; je zmacknuty dolu? = zakaz globalni preruseni
 	cpi r16, 0x5C
 	brne neq2
-	cli
+    ldi r25, 1
+    ldi r26, 0
+    cpse r24, r25
+    ldi r24, 0
+    cpse r24, r26
+    ldi r24, 1
+
+	;cli
 	ret 	; return to main loop
 
 neq2:
@@ -151,25 +159,33 @@ refresh_screen:
 	add r20, r22
 	mov	r16, r20		; ASCII kod do zobrozovaciho registru
 	ldi r17, 2      	; pozice
+    ldi r25, 1
+    cpse r24, r25
 	call show_char  	
 	
 	lds r20, sekpred
 	add r20, r22
 	mov r16, r20		
-	ldi r17, 4     	 
+	ldi r17, 4
+    ldi r25, 1
+    cpse r24, r25
 	call show_char 	 
 
 	lds r20, sekundy
 	add r20, r22
 	mov r16, r20		
-	ldi r17, 5      
+	ldi r17, 5
+    ldi r25, 1
+    cpse r24, r25
 	call show_char  
 
 
 	lds r20, des_sek
 	add r20, r22
 	mov r16, r20	
-	ldi r17, 7      	
+	ldi r17, 7
+    ldi r25, 1
+    cpse r24, r25	
 	call show_char  
 ret
 
