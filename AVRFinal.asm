@@ -45,6 +45,8 @@ start:
 
 loop:
     call joystick_control
+	ldi r25, 1
+    cpse r24, r25
     call refresh_screen
     jmp loop   
 
@@ -60,50 +62,44 @@ init_joy:
 
 joystick_control:
     
-	; nacti joystick
+	; nacteni a cekani na joystick
 	in r16, PINE
 	in r17, PINB
-	andi r16, 0b00001100 ; vymaskuj
-	andi r17, 0b11010000 ; vymaskuj
-	or r16, r17 ; dej dohromady
+	andi r16, 0b00001100 
+	andi r17, 0b11010000 
+	or r16, r17
 
-	; chvili pockej
 	ldi r18, 254
 	cek: dec r18
 	nop
 	brne cek
 
-	; nacti joystick znovu
 	in r17, PINE
 	in r18, PINB
-	andi r17, 0b00001100 ; vymaskuj
-	andi r18, 0b11010000 ; vymaskuj
-	or r17, r18 ; dej dohromady
+	andi r17, 0b00001100 
+	andi r18, 0b11010000
+	or r17, r18
 	cp r16, r17
 	brne joystick_control
 
-	; je zmacknuty nahoru? = povol globalni preruseni
+	; nahoru check
 	cpi r16, 0x9C
 	brne neq
-	sei
-	ret 	; return to main loop
+	call refresh_screen
+	ldi r24, 0
+	cli
+	ret
 
 neq: 
-	; je zmacknuty dolu? = zakaz globalni preruseni
+	; dolu check
 	cpi r16, 0x5C
-	brne neq2
-    ldi r25, 1
-    ldi r26, 0
-    cpse r24, r25
-    ldi r24, 0
-    cpse r24, r26
-    ldi r24, 1
-
-	;cli
-	ret 	; return to main loop
+	brne neq2    
+    ldi r24, 1 ; nastaveni mezicas flagu na 1 (je nastaven mezi cas)
+	call refresh_screen
+	ret
 
 neq2:
-	; je zmacknuty enter? = vynuluj countery
+	; enter check
 	cpi r16, 0xCC
 	brne neq3
 	
@@ -115,28 +111,28 @@ neq2:
 	push r19
 	push r20
 	push r21
-	; nacti
+
 	lds r16, counter
 	lds r17, counter2
 	lds r18, des_sek 
 	lds r19, sekundy
 	lds r20, minuty
 	lds r21, sekpred
-	; vynuluj
+	
 	ldi r16, 0
 	ldi r17, 0
 	ldi r18, 0 
 	ldi r19, 0
 	ldi r20, 0
 	ldi r21, 0
-	; uloz	
+	
 	sts counter, r16
 	sts counter2, r17
 	sts des_sek, r18
 	sts sekundy, r19
 	sts minuty, r20
 	sts sekpred, r21
-	; vse ze "vyber" ze zasobniku
+
 	pop r21
 	pop r20
 	pop r19
@@ -146,9 +142,11 @@ neq2:
 	out SREG, r16
 	pop r16
 
+	sei
+
 
 neq3:
-	ret 	; return to main loop
+	ret
 
 
 refresh_screen:
@@ -159,24 +157,18 @@ refresh_screen:
 	add r20, r22
 	mov	r16, r20		; ASCII kod do zobrozovaciho registru
 	ldi r17, 2      	; pozice
-    ldi r25, 1
-    cpse r24, r25
-	call show_char  	
+    call show_char  	
 	
 	lds r20, sekpred
 	add r20, r22
 	mov r16, r20		
 	ldi r17, 4
-    ldi r25, 1
-    cpse r24, r25
 	call show_char 	 
 
 	lds r20, sekundy
 	add r20, r22
 	mov r16, r20		
 	ldi r17, 5
-    ldi r25, 1
-    cpse r24, r25
 	call show_char  
 
 
@@ -184,8 +176,6 @@ refresh_screen:
 	add r20, r22
 	mov r16, r20	
 	ldi r17, 7
-    ldi r25, 1
-    cpse r24, r25	
 	call show_char  
 ret
 
@@ -196,12 +186,12 @@ init_int:            ; 1
     ldi r16, 0b00001000
     sts ASSR, r16    ; vyber hodin od externiho krystaloveho oscilátoru 32768 Hz
     ldi r16, 0b00000001
-    sts TIMSK2, r16  ; povoleni preruseni od casovace 2 2
+    sts TIMSK2, r16  ; povoleni preruseni od casovace
     ldi r16, 0b00000001
     sts TCCR2A, r16  ; nastaveni deliciho pomeru 1024
     clr r16
-    out EIMSK, r16   ; zakazani preruseni od joysticku
-    sei              ; globalni povoleni preruseni
+	out EIMSK, r16  
+    sei
 ret
 
 vynulovani:
@@ -215,8 +205,8 @@ vynulovani:
 preruseni_timer:
     cli
 
-	; nacpi vse do zasobniku
-	push r16 
+
+	push r16
 	in r16, SREG 
 	push r16 
 	push r17
