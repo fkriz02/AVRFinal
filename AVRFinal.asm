@@ -6,12 +6,12 @@
 ; countery
 .dseg
 .org 0x100
-counter: .BYTE 1
-counter2: .BYTE 1
+counterpreruseni: .BYTE 1
+countersetiny: .BYTE 1
 minuty: .BYTE 1
 sekundy: .BYTE 1
 sekpred: .BYTE 1
-des_sek: .BYTE 1
+desetiny: .BYTE 1
 
 .cseg
 
@@ -24,7 +24,7 @@ des_sek: .BYTE 1
 
 .org 0x100
 start:
-    ldi r24, 0 ; flag mezicasu
+    ldi r24, 0 ; flag mezicasu (0 -> neni nastaven mezicas, 1 -> je nastaven mezicas)
 	; Inicializace zasobniku
 	ldi r16, 0xFF
 	out SPL, r16
@@ -62,7 +62,7 @@ init_joy:
 
 joystick_control:
     
-	; nacteni a cekani na joystick
+	; nacteni a cekani na druhe nacteni joysticku
 	in r16, PINE
 	in r17, PINB
 	andi r16, 0b00001100 
@@ -112,9 +112,9 @@ neq2:
 	push r20
 	push r21
 
-	lds r16, counter
-	lds r17, counter2
-	lds r18, des_sek 
+	lds r16, counterpreruseni
+	lds r17, countersetiny
+	lds r18, desetiny 
 	lds r19, sekundy
 	lds r20, minuty
 	lds r21, sekpred
@@ -126,9 +126,9 @@ neq2:
 	ldi r20, 0
 	ldi r21, 0
 	
-	sts counter, r16
-	sts counter2, r17
-	sts des_sek, r18
+	sts counterpreruseni, r16
+	sts countersetiny, r17
+	sts desetiny, r18
 	sts sekundy, r19
 	sts minuty, r20
 	sts sekpred, r21
@@ -172,7 +172,7 @@ refresh_screen:
 	call show_char  
 
 
-	lds r20, des_sek
+	lds r20, desetiny
 	add r20, r22
 	mov r16, r20	
 	ldi r17, 7
@@ -196,16 +196,14 @@ ret
 
 vynulovani:
     ldi r16, 0
-	sts counter, r16
-	sts des_sek, r16
+	sts counterpreruseni, r16
+	sts desetiny, r16
 	sts sekundy, r16
 	sts sekpred, r16
 	sts minuty, r16
 
 preruseni_timer:
     cli
-
-
 	push r16
 	in r16, SREG 
 	push r16 
@@ -215,30 +213,30 @@ preruseni_timer:
 	push r20
 	push r21
 
-	lds r16, counter
-	lds r17, counter2
-	lds r18, des_sek 
+	lds r16, counterpreruseni
+	lds r17, countersetiny
+	lds r18, desetiny 
 	lds r19, sekundy
 	lds r20, minuty
 	lds r21, sekpred
 
-	inc r16		; inkrementujeme counter preruseni
-	cpi r17, 10	; chceme pricist desetiny po desate?
-	brne desetiny	; desetiny chceme inkrementovat po 13 prerusenich
+	inc r16		; inkrement counteru preruseni
+	cpi r17, 10	
+	brne des	
 
-	cpi r16, 11	; desetiny chceme inkrementovat po 11 prerusenich
+	cpi r16, 11	
 	brne save_val
-	ldi r16, 0	; nastavime counter preruseni na 0
-	ldi r17, 0	; nastavime counter pricitani desetin na nulu
-	ldi r18, 0	; nastav desetiny na nulu a ->
-	inc r19		; inkrementuj sekundy
+	ldi r16, 0	
+	ldi r17, 0	
+	ldi r18, 0	
+	inc r19		
 
-desetiny:
-	cpi r16, 13 ; 9x jednou za 13 preruseni inkrementuju desetiny
+des:
+	cpi r16, 13 
 	brne save_val
-	ldi r16, 0	; nastavime counter preruseni na 0
-	inc r17		; increment counter2
-	inc r18		; pridame desetinu
+	ldi r16, 0	; vynulovani counteru preruseni
+	inc r17		; increment counteru pro des
+	inc r18		
 
 save_val:
 	cpi r18, 10
@@ -253,15 +251,15 @@ sek:
 	inc r21
 
 min:
-	cpi r21, 6	; pricti minuty, pokud na vyssim radu sekund je 6
+	cpi r21, 6	; pricti minuty, pokud je na vyssim radu sekund 6
 	brne save
 	ldi r21, 0
 	inc r20
 
 save:	
-	sts counter, r16
-	sts counter2, r17
-	sts des_sek, r18
+	sts counterpreruseni, r16
+	sts countersetiny, r17
+	sts desetiny, r18
 	sts sekundy, r19
 	sts minuty, r20
 	sts sekpred, r21
@@ -275,7 +273,7 @@ save:
 	out SREG, r16
 	pop r16
 
-	sei		; povol preruseni
+	sei
 
 reti
 
